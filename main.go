@@ -29,19 +29,11 @@ func postShortURL(w http.ResponseWriter, request *http.Request) {
 	l := LongU{}
 	_ = json.NewDecoder(request.Body).Decode(&l)
 
-	validURL := govalidator.IsURL(str)
+	validURL := govalidator.IsURL(l.HUrl)
 	if validURL != true {
 		//обработка неверного URL
 	}
 
-	longUrls = append(longUrls, l)
-}
-
-func getShortURL(w http.ResponseWriter, request *http.Request) {
-
-	w.Header().Set("Content-Type", "application/json")
-	l := LongU{}
-	_ = json.NewDecoder(request.Body).Decode(&l)
 	longUrls = append(longUrls, l)
 }
 
