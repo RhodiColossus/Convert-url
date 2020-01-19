@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
@@ -20,7 +19,6 @@ import (
 //URLsTb = таблица с данными
 
 type URLsTb struct {
-	id    int
 	lond  string
 	short string
 	date  string
@@ -41,17 +39,22 @@ var shortUrls []ShortU
 var db *sql.DB
 
 //setURL = запись длинного url в базу и проверка жизни коротких url
-func setURL(url LongU) {
+func setURL(longURL LongU, shortURL ShortU) string {
+	dt := time.Now()
+	date := dt.Format("01-02-2006")
+	_, err := db.Exec("INSERT INTO urlstb VALUES($1, $2, $3)", longURL.HUrl, shortURL.HUrl, date)
 
-	long := "i_am+long"
-	short := "i_am_short"
-	id := 1
-	date := "10.10.2020"
-	result, err := db.Exec("INSERT INTO urlstb VALUES($1, $2, $3, $4)", id, long, short, date)
 	if err != nil {
-		//обработка ошибки
-		fmt.Println(result)
+		result := db.QueryRow("SELECT short FROM urlstb WHERE long = $1", longURL.HUrl)
+
+		err := result.Scan(&shortURL.HUrl)
+		if err != nil {
+			//ошибка
+		}
+		return shortURL.HUrl
 	}
+
+	return shortURL.HUrl
 }
 
 //GetMD5Hash = делает мд5 хеш
@@ -71,12 +74,12 @@ func postShortURL(w http.ResponseWriter, request *http.Request) {
 
 	validURL := govalidator.IsURL(l.HUrl)
 	if validURL != true {
-		l.HUrl = "incorrect url" //вывод ошибки о некоректности URL
+		s.HUrl = "incorrect url" //вывод ошибки о некоректности URL
+	} else {
+		resporse := URLgenerate()
+		s.HUrl = resporse
+		s.HUrl = setURL(l, s)
 	}
-
-	resporse := URLgenerate()
-	s.HUrl = resporse
-	setURL(l)
 	json.NewEncoder(w).Encode(s)
 }
 
@@ -132,5 +135,5 @@ func main() {
 	router.HandleFunc("/long", postShortURL).Methods("POST")
 	router.HandleFunc("/short", postLongURL).Methods("POST")
 
-	log.Fatal(http.ListenAndServe(":8002", router))
+	log.Fatal(http.ListenAndServe(":8004", router))
 }
