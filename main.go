@@ -38,6 +38,14 @@ var longUrls []LongU
 var shortUrls []ShortU
 var db *sql.DB
 
+//
+func oldURLchecker() {
+	dt := time.Now()
+	date := dt.Format("01-02-2006")
+
+	db.QueryRow("DELETE * FROM urlstb WHERE date < $1", date)
+}
+
 //setURL = запись длинного url в базу и проверка жизни коротких url
 func setURL(longURL LongU, shortURL ShortU) string {
 	dt := time.Now()
@@ -54,6 +62,8 @@ func setURL(longURL LongU, shortURL ShortU) string {
 		return shortURL.HUrl
 	}
 
+	oldURLchecker()
+
 	return shortURL.HUrl
 }
 
@@ -64,7 +74,7 @@ func GetMD5Hash(text string) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-//Принимает длинный url ,возвращает короткий
+//Принимает Короткий url ,возвращает Длинный
 func postShortURL(w http.ResponseWriter, request *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
@@ -102,19 +112,25 @@ func URLgenerate() string {
 	return shortURL
 }
 
-//Принимает Короткий url ,возвращает Длинный
+//Принимает Длинный url ,возвращает Короткий
 func postLongURL(w http.ResponseWriter, request *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
-	l := LongU{}
-	_ = json.NewDecoder(request.Body).Decode(&l)
+	s := ShortU{}
+	_ = json.NewDecoder(request.Body).Decode(&s)
 
-	validURL := govalidator.IsURL(l.HUrl)
+	validURL := govalidator.IsURL(s.HUrl)
 	if validURL != true {
-		//обработка неверного URL
+		s.HUrl = "incorrect url" //вывод ошибки о некоректности URL
+	} else {
+		result := db.QueryRow("SELECT long FROM urlstb WHERE short = $1", s.HUrl)
+		l := LongU{}
+		err := result.Scan(&l.HUrl)
+		if err != nil {
+			//ошибка
+		}
+		json.NewEncoder(w).Encode(l)
 	}
-
-	longUrls = append(longUrls, l)
 }
 
 func init() {
@@ -132,8 +148,8 @@ func init() {
 func main() {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/long", postShortURL).Methods("POST")
-	router.HandleFunc("/short", postLongURL).Methods("POST")
+	router.HandleFunc("/short", postShortURL).Methods("POST")
+	router.HandleFunc("/long", postLongURL).Methods("POST")
 
 	log.Fatal(http.ListenAndServe(":8004", router))
 }
