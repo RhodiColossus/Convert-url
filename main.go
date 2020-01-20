@@ -30,7 +30,7 @@ var longUrls []LongU
 var shortUrls []ShortU
 var db *sql.DB
 
-//oldURLchecker = удаляет все ссылки которым больше дня 
+//oldURLchecker = удаляет все ссылки которым больше дня
 func oldURLchecker() {
 	dt := time.Now()
 	date := dt.Format("01-02-2006")
@@ -108,17 +108,25 @@ func postLongURL(w http.ResponseWriter, request *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	s := ShortU{}
+	l := LongU{}
 	_ = json.NewDecoder(request.Body).Decode(&s)
 
 	validURL := govalidator.IsURL(s.HUrl)
 	if validURL != true {
-		s.HUrl = "incorrect url" //вывод ошибки о некоректности URL
+		l.HUrl = "incorrect url" //вывод ошибки о некоректности URL
 	} else {
 		result := db.QueryRow("SELECT long FROM urlstb WHERE short = $1", s.HUrl)
-		l := LongU{}
 		err := result.Scan(&l.HUrl)
 		if err != nil {
-			//ошибка
+			l.HUrl = "Not found"
+		} else {
+			dt := time.Now()
+			date := dt.Format("01-02-2006")
+
+			_, err := db.Exec("UPDATE urlstb SET date =$1 WHERE long =$2", date, l.HUrl) //обновление даты перехода по короткому URL
+			if err != nil {
+				//ошибка
+			}
 		}
 		json.NewEncoder(w).Encode(l)
 	}
