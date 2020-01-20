@@ -16,14 +16,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-//URLsTb = таблица с данными
-
-type URLsTb struct {
-	lond  string
-	short string
-	date  string
-}
-
 //LongU = long Url
 type LongU struct {
 	HUrl string `json:"url"`
@@ -38,7 +30,7 @@ var longUrls []LongU
 var shortUrls []ShortU
 var db *sql.DB
 
-//
+//oldURLchecker = удаляет все ссылки которым больше дня 
 func oldURLchecker() {
 	dt := time.Now()
 	date := dt.Format("01-02-2006")
@@ -150,5 +142,5 @@ func main() {
 	router.HandleFunc("/short", postShortURL).Methods("POST")
 	router.HandleFunc("/long", postLongURL).Methods("POST")
 
-	log.Fatal(http.ListenAndServe(":8004", router))
+	log.Fatal(http.ListenAndServe(":8000", router))
 }
