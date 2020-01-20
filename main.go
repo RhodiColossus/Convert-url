@@ -43,11 +43,12 @@ func oldURLchecker() {
 	dt := time.Now()
 	date := dt.Format("01-02-2006")
 
-	db.QueryRow("DELETE * FROM urlstb WHERE date < $1", date)
+	db.Exec("DELETE FROM urlstb WHERE date < $1", date)
 }
 
 //setURL = запись длинного url в базу и проверка жизни коротких url
 func setURL(longURL LongU, shortURL ShortU) string {
+	oldURLchecker()
 	dt := time.Now()
 	date := dt.Format("01-02-2006")
 	_, err := db.Exec("INSERT INTO urlstb VALUES($1, $2, $3)", longURL.HUrl, shortURL.HUrl, date)
@@ -61,8 +62,6 @@ func setURL(longURL LongU, shortURL ShortU) string {
 		}
 		return shortURL.HUrl
 	}
-
-	oldURLchecker()
 
 	return shortURL.HUrl
 }
